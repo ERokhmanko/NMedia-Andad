@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import kotlinx.coroutines.*
 import androidx.lifecycle.*
+import dagger.hilt.android.lifecycle.HiltViewModel
 import ru.netology.nmedia.dto.User
 import ru.netology.nmedia.model.FeedModelState
 import ru.netology.nmedia.repository.AuthRepository
