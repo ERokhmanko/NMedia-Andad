@@ -9,6 +9,7 @@ import ru.netology.nmedia.model.FeedModelState
 import ru.netology.nmedia.repository.AuthRepository
 import javax.inject.Inject
 
+@HiltViewModel
 class SignInViewModel @Inject constructor(private val repository: AuthRepository) : ViewModel() {
 
 

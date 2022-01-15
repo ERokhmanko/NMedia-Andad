@@ -2,15 +2,21 @@ package ru.netology.nmedia.application
 
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
-import androidx.work.*
+import androidx.work.Configuration
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import ru.netology.nmedia.auth.AppAuth
-import ru.netology.nmedia.work.RefreshPostsWorker
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import ru.netology.nmedia.auth.AppAuth
+import ru.netology.nmedia.work.RefreshPostsWorker
 
 @HiltAndroidApp
 class NMediaApplication : Application(), Configuration.Provider {
@@ -20,10 +26,10 @@ class NMediaApplication : Application(), Configuration.Provider {
     lateinit var auth: AppAuth
 
     @Inject
-    lateinit var workManager: WorkManager
+    lateinit var workManager: Lazy<WorkManager>
 
     @Inject
-    lateinit var workerFactory: HiltWorkerFactory
+    lateinit var workerFactory: Lazy<HiltWorkerFactory>
 
 
     override fun onCreate() {
@@ -42,7 +48,7 @@ class NMediaApplication : Application(), Configuration.Provider {
                 .setConstraints(constraints)
                 .build()
 
-            workManager.enqueueUniquePeriodicWork(
+            workManager.get().enqueueUniquePeriodicWork(
                 RefreshPostsWorker.name,
                 ExistingPeriodicWorkPolicy.KEEP,
                 request
@@ -58,7 +64,7 @@ class NMediaApplication : Application(), Configuration.Provider {
 
     override fun getWorkManagerConfiguration(): Configuration {
         return Configuration.Builder()
-            .setWorkerFactory(workerFactory)
+            .setWorkerFactory(workerFactory.get())
             .build()
     }
 }
