@@ -30,6 +30,9 @@ interface ApiService {
     @GET("posts/{id}/before")
     suspend fun getBefore(@Path("id") id: Long, @Query("count") count: Int): Response<List<Post>>
 
+    @GET("posts/{id}/after")
+    suspend fun getAfter(@Path("id") id: Long, @Query("count") count: Int): Response<List<Post>>
+
     @GET("posts/{id}/newer")
     suspend fun getNewer(@Path("id") id: Long): Response<List<Post>>
 

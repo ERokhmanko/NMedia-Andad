@@ -25,7 +25,7 @@ class NMediaApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var auth: AppAuth
 
-    @Inject
+  @Inject
     lateinit var workManager: Lazy<WorkManager>
 
     @Inject
