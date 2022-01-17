@@ -3,12 +3,14 @@ package ru.netology.nmedia.viewmodel
 import android.net.Uri
 import androidx.core.net.toFile
 import androidx.lifecycle.*
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.map
 import androidx.work.*
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.*
 import ru.netology.nmedia.auth.AppAuth
 import ru.netology.nmedia.dto.MediaUpload
 import ru.netology.nmedia.dto.Post
@@ -40,171 +42,169 @@ private val emptyPost = Post(
 @HiltViewModel
 class PostViewModel @Inject constructor(
     private val repository: PostRepository,
-    private val appAuth: AppAuth,
     private val workManager: WorkManager
 ) : ViewModel() {
 
-    val data: LiveData<FeedModel> = appAuth
-        .authStateFlow
-        .flatMapLatest { (myId, _) ->
-            repository.data
-                .map { posts ->
-                    FeedModel(
-                        posts.map { it.copy(ownedByMe = it.authorId == myId) },
-                        posts.isEmpty()
-                    )
-                }
-        }.asLiveData(Dispatchers.Default)
+    private val cached = repository.data.cachedIn(viewModelScope)
 
-    private val _dataState = MutableLiveData<FeedModelState>()
-    val dataState: LiveData<FeedModelState>
+    val data: Flow<PagingData<Post>> = cached
+
+//    val data: Flow<PagingData<Post>> = appAuth.authStateFlow.flatMapLatest { (myId, _) ->
+//        cached.map { posts ->
+//            posts.map { it.copy(ownedByMe = it.authorId == myId) }
+//        }
+//    } .flowOn(Dispatchers.Default)
+
+
+        private val _dataState = MutableLiveData<FeedModelState>()
+        val dataState: LiveData<FeedModelState>
         get() = _dataState
 
-    val edited = MutableLiveData(emptyPost)
-    private val _postCreated = SingleLiveEvent<Unit>()
-    val postCreated: LiveData<Unit>
+        val edited = MutableLiveData(emptyPost)
+        private val _postCreated = SingleLiveEvent<Unit>()
+        val postCreated: LiveData<Unit>
         get() = _postCreated
 
-    val newerCount: LiveData<Int> = data.switchMap {
-        repository.getNewerCount(it.posts.firstOrNull()?.id ?: 0L)
-            .catch { e -> _dataState.postValue(FeedModelState(error = true)) }
-            .asLiveData(Dispatchers.Default)
-    }
+//        val newerCount: LiveData<Int> = data.switchMap {
+//            repository.getNewerCount(it.posts.firstOrNull()?.id ?: 0L)
+//                .catch { e -> _dataState.postValue(FeedModelState(error = true)) }
+//                .asLiveData(Dispatchers.Default)
+//        }
 
-    private val noPhoto = PhotoModel()
-    private val _photo = MutableLiveData(noPhoto)
-    val photo: LiveData<PhotoModel>
+        private val noPhoto = PhotoModel()
+        private val _photo = MutableLiveData(noPhoto)
+        val photo: LiveData<PhotoModel>
         get() = _photo
 
-    init {
-        loadPosts()
-    }
-
-    fun loadPosts() = viewModelScope.launch {
-        try {
-            _dataState.value = FeedModelState(loading = true)
-            repository.getAll()
-            _dataState.value = FeedModelState()
-        } catch (e: Exception) {
-            _dataState.value = FeedModelState(error = true)
+        init {
+            loadPosts()
         }
-    }
 
-    fun loadNewPosts() = viewModelScope.launch {
-        try {
-            _dataState.value = FeedModelState(loading = true)
-            repository.getNewPosts()
-            _dataState.value = FeedModelState()
-        } catch (e: Exception) {
-            _dataState.value = FeedModelState(error = true)
-        }
-    }
-
-
-    fun refreshPosts() = viewModelScope.launch {
-        try {
-            _dataState.value = FeedModelState(refreshing = true)
-            repository.getAll()
-            _dataState.value = FeedModelState()
-        } catch (e: Exception) {
-            _dataState.value = FeedModelState(error = true)
-        }
-    }
-
-
-    fun save() {
-        edited.value?.let {
-            _postCreated.value = Unit
-            viewModelScope.launch {
-                try {
-                    val id = repository.saveWork(
-                        it, _photo.value?.uri?.let { MediaUpload(it.toFile()) }
-                    )
-                    val data = workDataOf(SavePostWorker.postKey to id)
-                    val constraints = Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build()
-                    val request = OneTimeWorkRequestBuilder<SavePostWorker>()
-                        .setInputData(data)
-                        .setConstraints(constraints)
-                        .build()
-                    workManager.enqueue(request)
-
-                    _dataState.value = FeedModelState()
-                } catch (e: Exception) {
-                    _dataState.value = FeedModelState(error = true)
-                }
+        fun loadPosts() = viewModelScope.launch {
+            try {
+                _dataState.value = FeedModelState(loading = true)
+                repository.getAll()
+                _dataState.value = FeedModelState()
+            } catch (e: Exception) {
+                _dataState.value = FeedModelState(error = true)
             }
         }
 
-    }
-
-    fun changeContent(content: String) {
-        edited.value?.let {
-            val text = content.trim()
-            if (it.content != text)
-                edited.value = it.copy(content = text)
+        fun loadNewPosts() = viewModelScope.launch {
+            try {
+                _dataState.value = FeedModelState(loading = true)
+                repository.getNewPosts()
+                _dataState.value = FeedModelState()
+            } catch (e: Exception) {
+                _dataState.value = FeedModelState(error = true)
+            }
         }
-    }
 
-    fun edit(post: Post) {
-        edited.value = post
-    }
 
-    fun likeById(id: Long) = viewModelScope.launch {
-        try {
-            repository.likedById(id)
-        } catch (e: Exception) {
-            _dataState.value =
-                FeedModelState(error = true, retryType = RetryType.LIKE, retryId = id)
+        fun refreshPosts() = viewModelScope.launch {
+            try {
+                _dataState.value = FeedModelState(refreshing = true)
+                repository.getAll()
+                _dataState.value = FeedModelState()
+            } catch (e: Exception) {
+                _dataState.value = FeedModelState(error = true)
+            }
         }
-    }
 
-    fun unlikeById(id: Long) = viewModelScope.launch {
-        try {
-            repository.unlikeById(id)
-        } catch (e: Exception) {
-            _dataState.value =
-                FeedModelState(error = true, retryType = RetryType.UNLIKE, retryId = id)
+
+        fun save() {
+            edited.value?.let {
+                _postCreated.value = Unit
+                viewModelScope.launch {
+                    try {
+                        val id = repository.saveWork(
+                            it, _photo.value?.uri?.let { MediaUpload(it.toFile()) }
+                        )
+                        val data = workDataOf(SavePostWorker.postKey to id)
+                        val constraints = Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build()
+                        val request = OneTimeWorkRequestBuilder<SavePostWorker>()
+                            .setInputData(data)
+                            .setConstraints(constraints)
+                            .build()
+                        workManager.enqueue(request)
+
+                        _dataState.value = FeedModelState()
+                    } catch (e: Exception) {
+                        _dataState.value = FeedModelState(error = true)
+                    }
+                }
+            }
+
         }
-    }
 
-    fun shareById(id: Long) = viewModelScope.launch {
-        repository.shareById(id)
-    }
+        fun changeContent(content: String) {
+            edited.value?.let {
+                val text = content.trim()
+                if (it.content != text)
+                    edited.value = it.copy(content = text)
+            }
+        }
 
-    fun removeById(id: Long) = viewModelScope.launch {
-        try {
+        fun edit(post: Post) {
+            edited.value = post
+        }
+
+        fun likeById(id: Long) = viewModelScope.launch {
+            try {
+                repository.likedById(id)
+            } catch (e: Exception) {
+                _dataState.value =
+                    FeedModelState(error = true, retryType = RetryType.LIKE, retryId = id)
+            }
+        }
+
+        fun unlikeById(id: Long) = viewModelScope.launch {
+            try {
+                repository.unlikeById(id)
+            } catch (e: Exception) {
+                _dataState.value =
+                    FeedModelState(error = true, retryType = RetryType.UNLIKE, retryId = id)
+            }
+        }
+
+        fun shareById(id: Long) = viewModelScope.launch {
+            repository.shareById(id)
+        }
+
+        fun removeById(id: Long) = viewModelScope.launch {
+            try {
 //            repository.removeById(id)
 
-            val data = workDataOf(RemovePostWorker.postKey to id)
-            val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build()
-            val request = OneTimeWorkRequestBuilder<RemovePostWorker>()
-                .setInputData(data)
-                .setConstraints(constraints)
-                .build()
-            workManager.enqueue(request)
+                val data = workDataOf(RemovePostWorker.postKey to id)
+                val constraints = Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+                val request = OneTimeWorkRequestBuilder<RemovePostWorker>()
+                    .setInputData(data)
+                    .setConstraints(constraints)
+                    .build()
+                workManager.enqueue(request)
 
-            _dataState.value = FeedModelState()
-        } catch (e: Exception) {
-            _dataState.value =
-                FeedModelState(error = true, retryType = RetryType.REMOVE, retryId = id)
+                _dataState.value = FeedModelState()
+            } catch (e: Exception) {
+                _dataState.value =
+                    FeedModelState(error = true, retryType = RetryType.REMOVE, retryId = id)
+            }
         }
-    }
 
-    fun changePhoto(uri: Uri?, file: File?) {
-        _photo.value = PhotoModel(uri, file)
-    }
+        fun changePhoto(uri: Uri?, file: File?) {
+            _photo.value = PhotoModel(uri, file)
+        }
 
 
-    fun cancelEditing() = edited.value?.let {
+        fun cancelEditing() = edited.value?.let {
 //        repository.cancelEditing(it)
-    }
+        }
 
 
 //    fun saveDraft(draft: String?) = repository.saveDraft(draft)
 //    fun getDraft(): String? = repository.getDraft()
 
-}
+    }

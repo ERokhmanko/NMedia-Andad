@@ -6,6 +6,8 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.PopupMenu
 import androidx.core.view.isVisible
+import androidx.paging.PagingData
+import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -27,7 +29,7 @@ interface PostCallback {
 }
 
 class PostsAdapter(private val postCallback: PostCallback) :
-    ListAdapter<Post, PostViewHolder>(PostsDiffCallback()) {
+    PagingDataAdapter<Post, PostViewHolder>(PostsDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PostViewHolder {
         val binding = CardPostBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -35,7 +37,7 @@ class PostsAdapter(private val postCallback: PostCallback) :
     }
 
     override fun onBindViewHolder(holder: PostViewHolder, position: Int) {
-        val post = getItem(position)
+        val post = getItem(position) ?: return
         holder.bind(post)
     }
 
