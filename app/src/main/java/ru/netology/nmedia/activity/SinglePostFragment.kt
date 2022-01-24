@@ -6,18 +6,23 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
+import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.widget.ActionBarContainer
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.paging.map
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.collectLatest
 import ru.netology.nmedia.R
 import ru.netology.nmedia.databinding.FragmentSinglePostBinding
+import ru.netology.nmedia.dto.FeedItem
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.utils.Utils
 import ru.netology.nmedia.viewmodel.PostViewModel
 
+@ExperimentalCoroutinesApi
 class SinglePostFragment : Fragment() {
 
     override fun onCreateView(
@@ -31,42 +36,46 @@ class SinglePostFragment : Fragment() {
         val bundle = Bundle()
         val binding = FragmentSinglePostBinding.inflate(inflater, container, false)
         val id = arguments?.getLong("id")
-        var singlePost: Post? = null
+        var singlePost: FeedItem? = null
 
-//        viewModel.data.observe(viewLifecycleOwner) { state ->
-//            state.posts.map { post ->
-//                if (post.id == id) {
-//                    singlePost = post
-//                }
-//            }
 
-            lifecycleScope.launchWhenCreated {
-                viewModel.data.collectLatest {
-                    it.map { post ->
-                        if (post.id == id) {
-                            singlePost = post
-                        }
+        viewModel.data.observe(viewLifecycleOwner)  // ОШИБКА observe
+        { state ->
+            state.posts.map { post ->
+                if (post.id == id) {
+                    singlePost = post
+                }
+            }
+        }
+
+        lifecycleScope.launchWhenCreated {
+            viewModel.data.collectLatest {
+                it.map { post ->
+                    if (post.id == id) {
+                        singlePost = post
                     }
                 }
             }
+        }
 
-            with(binding){
-                author.text = singlePost?.author
-                content.text = singlePost?.content
-                published.text = singlePost?.published
+        //Здесь ошибки
+        with(binding) {
+            author.text = singlePost?.author
+            content.text = singlePost?.content
+            published.text = singlePost?.published
 
-                like.text = singlePost?.let { it -> Utils.reductionInNumbers(it.likes) }
-                share.text = singlePost?.sharesCount?.let { it ->
-                    Utils.reductionInNumbers(
-                        it
-                    )
-                }
-                like.isChecked = singlePost?.likedByMe == true
-                if (singlePost?.video != "") binding.group.visibility = View.VISIBLE
-                if (singlePost?.attachment != null) viewForImage.visibility = View.VISIBLE
-
-
+            like.text = singlePost?.let { it -> Utils.reductionInNumbers(it.likes) }
+            share.text = singlePost?.sharesCount?.let { it ->
+                Utils.reductionInNumbers(
+                    it
+                )
             }
+            like.isChecked = singlePost?.likedByMe == true
+            if (singlePost?.video != "") binding.group.visibility = View.VISIBLE
+            if (singlePost?.attachment != null) viewForImage.visibility = View.VISIBLE
+
+
+        }
 
 
 
@@ -86,9 +95,9 @@ class SinglePostFragment : Fragment() {
                         }
                         R.id.post_edit -> {
 
-                            singlePost?.let { it -> viewModel.edit(it) }
+                            singlePost?.let { it -> viewModel.edit(it) } //Здесь ошибка в it
 
-                            bundle.putString("content", singlePost?.content)
+                            bundle.putString("content", singlePost?.content) //Здесь ошибка
 
                             findNavController().navigate(
                                 R.id.action_singlePostFragment_to_newPostFragment,
@@ -101,9 +110,8 @@ class SinglePostFragment : Fragment() {
                 }
             }.show()
         }
-
-
         return binding.root
     }
-
 }
+
+

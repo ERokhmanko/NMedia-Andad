@@ -3,20 +3,21 @@ package ru.netology.nmedia.adapter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.PopupMenu
 import androidx.core.view.isVisible
-import androidx.paging.PagingData
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import ru.netology.nmedia.R
+import ru.netology.nmedia.databinding.CardAdBinding
 import ru.netology.nmedia.databinding.CardPostBinding
+import ru.netology.nmedia.dto.Ad
 import ru.netology.nmedia.dto.AttachmentType
+import ru.netology.nmedia.dto.FeedItem
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.utils.Utils
+import ru.netology.nmedia.view.load
 
 interface PostCallback {
     fun onLike(post: Post)
@@ -29,18 +30,47 @@ interface PostCallback {
 }
 
 class PostsAdapter(private val postCallback: PostCallback) :
-    PagingDataAdapter<Post, PostViewHolder>(PostsDiffCallback()) {
+    PagingDataAdapter<FeedItem, RecyclerView.ViewHolder>(PostsDiffCallback()) {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PostViewHolder {
-        val binding = CardPostBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return PostViewHolder(binding, postCallback)
+    override fun getItemViewType(position: Int): Int =
+        when(getItem(position)){
+            is Ad -> R.layout.card_ad
+            is Post -> R.layout.card_post
+            null -> error("Unknown item type")
+        }
+
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =
+         when(viewType){
+            R.layout.card_post -> {
+                val binding = CardPostBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+                PostViewHolder(binding, postCallback)
+            }
+            R.layout.card_ad -> {
+                val binding = CardAdBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+                AdViewHolder(binding)
+            }
+            else -> error("Unknown view type $viewType")
+        }
+
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        when (val item = getItem(position)){
+            is Ad -> (holder as? AdViewHolder)?.bind(item)
+            is Post -> (holder as? PostViewHolder)?.bind(item)
+            null -> error("Unknown view type")
+        }
     }
 
-    override fun onBindViewHolder(holder: PostViewHolder, position: Int) {
-        val post = getItem(position) ?: return
-        holder.bind(post)
-    }
+}
 
+class AdViewHolder(
+    private val binding: CardAdBinding
+): RecyclerView.ViewHolder(binding.root) {
+
+    fun bind(ad: Ad){
+        binding.imageAd.load("http://10.0.2.2:9999/media/${ad.name}")
+    }
 }
 
 class PostViewHolder(
@@ -82,67 +112,68 @@ class PostViewHolder(
 
 
 
-                if (!post.video.isNullOrBlank()) {
-                    group.visibility = View.VISIBLE
-                }
+            if (!post.video.isNullOrBlank()) {
+                group.visibility = View.VISIBLE
+            }
 
-                like.setOnClickListener {
-                    postCallback.onLike(post)
-                }
+            like.setOnClickListener {
+                postCallback.onLike(post)
+            }
 
-                share.setOnClickListener {
-                    postCallback.onShare(post)
-                }
+            share.setOnClickListener {
+                postCallback.onShare(post)
+            }
 
-                play.setOnClickListener {
-                    postCallback.onVideo(post)
-                }
+            play.setOnClickListener {
+                postCallback.onVideo(post)
+            }
 
-                viewForVideo.setOnClickListener {
-                    postCallback.onVideo(post)
-                }
+            viewForVideo.setOnClickListener {
+                postCallback.onVideo(post)
+            }
 
-                content.setOnClickListener {
-                    postCallback.onPost(post)
-                }
+            content.setOnClickListener {
+                postCallback.onPost(post)
+            }
 
             viewForImage.setOnClickListener {
                 postCallback.onImage(post)
             }
 
-                menu.setOnClickListener {
-                    PopupMenu(it.context, it).apply {
-                        inflate(R.menu.post_options)
-                        menu.setGroupVisible(R.id.owned, post.ownedByMe)
-                        setOnMenuItemClickListener { menuItem ->
-                            when (menuItem.itemId) {
-                                R.id.post_remove -> {
-                                    postCallback.remove(post)
-                                    true
-                                }
-                                R.id.post_edit -> {
-                                    postCallback.edit(post)
-                                    true
-                                }
-                                else -> false
+            menu.setOnClickListener {
+                PopupMenu(it.context, it).apply {
+                    inflate(R.menu.post_options)
+                    menu.setGroupVisible(R.id.owned, post.ownedByMe)
+                    setOnMenuItemClickListener { menuItem ->
+                        when (menuItem.itemId) {
+                            R.id.post_remove -> {
+                                postCallback.remove(post)
+                                true
                             }
+                            R.id.post_edit -> {
+                                postCallback.edit(post)
+                                true
+                            }
+                            else -> false
                         }
-                    }.show()
-                }
-
-
+                    }
+                }.show()
             }
+
+
         }
     }
+}
 
 
-class PostsDiffCallback : DiffUtil.ItemCallback<Post>() {
+class PostsDiffCallback : DiffUtil.ItemCallback<FeedItem>() {
 
-    override fun areItemsTheSame(oldItem: Post, newItem: Post): Boolean {
+    override fun areItemsTheSame(oldItem: FeedItem, newItem: FeedItem): Boolean {
+        if (oldItem::class != newItem::class) return false
         return oldItem.id == newItem.id
     }
 
-    override fun areContentsTheSame(oldItem: Post, newItem: Post): Boolean {
+    override fun areContentsTheSame(oldItem: FeedItem, newItem: FeedItem): Boolean {
         return oldItem == newItem
     }
 

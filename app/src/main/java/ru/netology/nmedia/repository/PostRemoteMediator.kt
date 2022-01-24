@@ -12,6 +12,7 @@ import ru.netology.nmedia.dao.PostRemoteKeyDao
 import ru.netology.nmedia.db.AppDb
 import ru.netology.nmedia.entity.PostEntity
 import ru.netology.nmedia.entity.PostRemoteKeyEntity
+import ru.netology.nmedia.error.ApiError
 import java.io.IOException
 
 @OptIn(ExperimentalPagingApi::class)
@@ -42,7 +43,7 @@ class PostRemoteMediator(
                     apiService.getBefore(id, state.config.pageSize)
                 }
                 LoadType.PREPEND -> {
-                    return MediatorResult.Success(true)
+                    return MediatorResult.Success(false)
 
 //                    реализация с вебинара
 //                    val id = postRemoteKeyDao.max() ?: return MediatorResult.Success(false)
@@ -52,7 +53,11 @@ class PostRemoteMediator(
             }
 
             if (!result.isSuccessful) throw HttpException(result)
-            val data = result.body() ?: throw HttpException(result)
+            val data = result.body() ?: throw ApiError(
+                result.code(),
+                result.message(),
+            )
+
 
             appDb.withTransaction {
                 when (loadType) {

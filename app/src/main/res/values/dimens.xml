@@ -21,4 +21,5 @@
     <dimen name="marginTop_button_sign_in">200dp</dimen>
     <dimen name="marginTop_sign_up">16dp</dimen>
     <dimen name="sign_up_marginTop">50dp</dimen>
+    <dimen name="height_image_ad">300dp</dimen>
 </resources>

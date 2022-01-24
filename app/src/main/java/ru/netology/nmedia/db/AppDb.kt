@@ -13,7 +13,8 @@ import ru.netology.nmedia.entity.PostRemoteKeyEntity
 import ru.netology.nmedia.entity.PostWorkEntity
 
 @Database(
-    entities = [PostEntity::class, DraftEntity::class, PostWorkEntity::class, PostRemoteKeyEntity::class],
+    entities = [PostEntity::class, DraftEntity::class, PostWorkEntity::class,
+        PostRemoteKeyEntity::class],
     version = 1,
     exportSchema = false
 )

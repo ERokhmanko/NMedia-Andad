@@ -13,6 +13,7 @@ import com.github.dhaval2404.imagepicker.ImagePicker
 import com.github.dhaval2404.imagepicker.constant.ImageProvider
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import ru.netology.nmedia.R
 import ru.netology.nmedia.databinding.FragmentNewPostBinding
 import ru.netology.nmedia.util.StringArg
@@ -20,6 +21,7 @@ import ru.netology.nmedia.utils.Utils
 import ru.netology.nmedia.viewmodel.AuthViewModel
 import ru.netology.nmedia.viewmodel.PostViewModel
 
+@ExperimentalCoroutinesApi
 @AndroidEntryPoint
 class NewPostFragment : Fragment() {
 
@@ -46,6 +48,7 @@ class NewPostFragment : Fragment() {
         inflater.inflate(R.menu.menu_new_post, menu)
     }
 
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         val content = arguments?.getString("content")
         return when (item.itemId) {
@@ -69,7 +72,7 @@ class NewPostFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         val binding = FragmentNewPostBinding.inflate(inflater, container, false)
         fragmentBinding = binding
 

@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ru.netology.nmedia.R
 import ru.netology.nmedia.adapter.PostCallback
+import ru.netology.nmedia.adapter.PostLoadStateAdapter
 import ru.netology.nmedia.adapter.PostsAdapter
 import ru.netology.nmedia.databinding.FragmentFeedBinding
 import ru.netology.nmedia.dto.Post
@@ -116,7 +117,15 @@ class FeedFragment : Fragment() {
 
         })
 
-        binding.list.adapter = adapter
+        binding.list.adapter = adapter.withLoadStateHeaderAndFooter(
+            header = PostLoadStateAdapter {
+                adapter.retry()
+            },
+            footer = PostLoadStateAdapter {
+                adapter.retry()
+            }
+
+        )
         binding.list.animation = null // отключаем анимацию
 
         lifecycleScope.launchWhenCreated {
@@ -128,8 +137,6 @@ class FeedFragment : Fragment() {
         lifecycleScope.launchWhenCreated {
             adapter.loadStateFlow.collectLatest {
                 binding.swiperefresh.isRefreshing =
-                    it.prepend is LoadState.Loading ||
-                            it.append is LoadState.Loading ||
                             it.refresh is LoadState.Loading
             }
         }
@@ -163,11 +170,12 @@ class FeedFragment : Fragment() {
 
         viewModelAuth.data.observe(viewLifecycleOwner) { adapter.refresh() }
 
-        binding.swiperefresh.setOnRefreshListener {
-            adapter.refresh()
-            binding.newEntry.visibility = View.GONE
-        }
+//        binding.swiperefresh.setOnRefreshListener {
+//            adapter.refresh()
+////            binding.newEntry.visibility = View.GONE
+//        }
 
+        binding.swiperefresh.setOnRefreshListener(adapter::refresh)
 
         binding.newEntry.setOnClickListener {
             binding.newEntry.visibility = View.GONE
@@ -192,7 +200,7 @@ class FeedFragment : Fragment() {
         }
 
 
-            //скроллинг постов
+        //скроллинг постов
         lifecycleScope.launch {
             val shouldScrollToTop = adapter.loadStateFlow
                 .distinctUntilChangedBy { it.source.refresh }
