@@ -17,7 +17,7 @@ class SingleImageFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
 
         // Меняем цвет AppBar на черный
         val activity = requireActivity()

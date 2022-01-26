@@ -21,6 +21,7 @@ interface PostRepository {
     suspend fun saveDraft(draft: String?)
     suspend fun getDraft()
     suspend fun getAll()
+    fun getSinglePost(id: Long): Flow<Post?>
 
     fun getNewerCount(id: Long): Flow<Int>
     suspend fun getNewPosts()

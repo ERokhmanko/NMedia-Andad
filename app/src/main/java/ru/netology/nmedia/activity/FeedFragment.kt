@@ -159,21 +159,9 @@ class FeedFragment : Fragment() {
             }
         }
 
-//        viewModel.newerCount.observe(viewLifecycleOwner) {
-//            with(binding.newEntry) {
-//                if (it > 0) {
-//                    text = "${getString(R.string.new_posts)} $it"
-//                    visibility = View.VISIBLE
-//                }
-//            }
-//        }
-
         viewModelAuth.data.observe(viewLifecycleOwner) { adapter.refresh() }
 
-//        binding.swiperefresh.setOnRefreshListener {
-//            adapter.refresh()
-////            binding.newEntry.visibility = View.GONE
-//        }
+
 
         binding.swiperefresh.setOnRefreshListener(adapter::refresh)
 

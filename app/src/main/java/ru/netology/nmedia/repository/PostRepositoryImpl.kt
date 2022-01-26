@@ -67,6 +67,12 @@ class PostRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getSinglePost(id: Long): Flow<Post?> =
+        postDao.getPostById(id).map {
+            it?.toDto()
+        }
+
+
     override suspend fun getNewPosts() {
         try {
             postDao.setPostsViewed()

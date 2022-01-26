@@ -221,6 +221,8 @@ class PostViewModel @Inject constructor(
         _photo.value = PhotoModel(uri, file)
     }
 
+    fun getSinglePost(id: Long): Flow<Post?> = repository.getSinglePost(id)
+
 
     fun cancelEditing() = edited.value?.let {
 //        repository.cancelEditing(it)

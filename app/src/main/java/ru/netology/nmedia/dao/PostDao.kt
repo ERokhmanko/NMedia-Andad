@@ -17,6 +17,9 @@ interface PostDao {
     @Query("SELECT * FROM PostEntity where viewed = 1 ORDER BY id DESC")
     fun getPagingSource(): PagingSource<Int, PostEntity>
 
+    @Query("SELECT * FROM PostEntity where id = :id")
+    fun getPostById(id: Long): Flow<PostEntity?>
+
     @Insert(onConflict = REPLACE)
     suspend fun insert(post: PostEntity)
 
